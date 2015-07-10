@@ -1,8 +1,0 @@
-{
-  "development": {
-    "jest": "http://github.com/jkroso/jest/tarball/804af51"
-  },
-  "production": {
-    "Promises": "http://github.com/jkroso/Promises.jl/tarball/e2bb347"
-  }
-}

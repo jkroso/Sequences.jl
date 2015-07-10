@@ -1,4 +1,4 @@
-@require "Promises" Promise Result need @defer
+@require "jkroso/Promises.jl" Promise Result need @defer
 
 abstract Sequence{T}
 abstract SequenceNode{T} <: Sequence{T}

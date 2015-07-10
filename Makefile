@@ -1,9 +1,8 @@
-
-dependencies: dependencies.json
-	@packin install --folder $@ --meta $<
+dependencies: index.jl
+	@kip index.jl
 	@ln -snf .. $@/Sequences
 
 test: dependencies
-	@$</jest/bin/jest *.jl
+	@jest index.jl
 
 .PHONY: test

@@ -20,6 +20,7 @@ end
 # Make the tail optional
 Cons(first, tail=EOS) = Cons(first, tail)
 
+Base.eltype(::Sequence{T}) where T = T
 Base.first(s::Cons) = s.head
 rest(s::Cons) = s.tail
 
@@ -76,13 +77,11 @@ take(n::Int, s::Sequence) = n < 1 ? EOS : Take(n, s)
 Base.skip(n::Int, s::Sequence) = n == 0 ? s : skip(n - 1, rest(s))
 Base.skip(n::Int, s::EmptySequence) = n == 0 ? EOS : throw(BoundsError())
 
-# Iteration protocol
-Base.start(s::Sequence) = s
-Base.next(::Sequence, s::Sequence) = (first(s), rest(s))
-Base.done(::Sequence, s::Sequence) = eof(s)
+Base.iterate(s::Sequence) = iterate(s, s)
+Base.iterate(s::Sequence, r::Sequence) = eof(r) ? nothing : (first(r), rest(r))
 
 Base.isempty(s::Sequence) = eof(s)
-Base.endof(s::Sequence) = length(s)
+Base.lastindex(s::Sequence) = length(s)
 Base.length(s::Sequence) = eof(s) ? 0 : 1 + length(rest(s))
 Base.getindex(s::Sequence, n::Int) = n == 1 ? first(s) : getindex(rest(s), n - 1)
 Base.getindex(s::Sequence, r::UnitRange{Int}) = take(r.stop, skip(r.start - 1, s))
@@ -127,8 +126,8 @@ Iterators.filter(f::Function, s::Sequence) = begin
   end
 end
 
-Base.reduce(f::Function, accum, s::EmptySequence) = accum
-Base.reduce(f::Function, accum, s::Sequence) = reduce(f, f(accum, first(s)), rest(s))
+Base.reduce(f::Function, s::EmptySequence; init) = init
+Base.reduce(f::Function, s::Sequence; init=Base.reduce_empty(f, eltype(s))) = reduce(f, rest(s), init=f(init, first(s)))
 
 """
 Streams are Sequences where the tail is always a Promise. Thereby enabling the sequence
@@ -138,14 +137,14 @@ struct Stream{T} <: Sequence{T}
   head::T
   tail::Promise
 end
-Stream(first, tail=Promise(EOS)) = Stream(first, tail)
+Stream(first, tail=convert(Promise, EOS)) = Stream(first, tail)
 
 Base.first(s::Stream) = s.head
 rest(s::Stream) = need(s.tail)
 
 # Lazy character streams from IO objects
 Base.convert(::Type{Sequence}, io::IO) = convert(Sequence{UInt8}, io)
-Base.convert(::Type{Sequence{T}}, io::IO) where {T} = begin
+Base.convert(::Type{Sequence{T}}, io::IO) where T = begin
   if eof(io)
     close(io)
     EOS

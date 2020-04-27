@@ -102,3 +102,9 @@ testset("convert(DoublyLinkedList, iter)") do
   @test isempty(convert(DoublyLinkedList, ()))
   @test 1 in convert(DoublyLinkedList, (1,))
 end
+
+testset("push!(DoublyLinkedList, x)") do
+  a = convert(DoublyLinkedList, (1,2,3))
+  @test push!(a, 4).value == 4
+  @test repr(a) == "(1 2 3 4)"
+end

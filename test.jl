@@ -98,4 +98,7 @@ testset("convert(DoublyLinkedList, iter)") do
   @test repr(convert(DoublyLinkedList, (1,2,3))) == "(1 2 3)"
   @test head(convert(DoublyLinkedList, (1,2,3))).value == 1
   @test tail(convert(DoublyLinkedList, (1,2,3))).value == 3
+  @test !isempty(convert(DoublyLinkedList, (1,)))
+  @test isempty(convert(DoublyLinkedList, ()))
+  @test 1 in convert(DoublyLinkedList, (1,))
 end

@@ -1,5 +1,3 @@
-@require "github.com/jkroso/Promises.jl" Promise need @defer
-
 abstract type Sequence{T} end
 
 "A singleton to mark the end of a list"
@@ -29,11 +27,11 @@ list() = EOS
 list(head, rest...) = Cons(head, list(rest...))
 
 # Handle pretty printing for the REPL etc..
-Base.show(io::IO, m::MIME"text/plain", seq::EmptySequence) = write(io, "()")
-Base.show(io::IO, m::MIME"text/plain", seq::Sequence) = begin
+Base.show(io::IO, seq::EmptySequence) = write(io, "()")
+Base.show(io::IO, seq::Sequence) = begin
   write(io, '(')
   while true
-    show(io, m, first(seq))
+    show(io, first(seq))
     seq = rest(seq)
     eof(seq) && break
     write(io, ' ')
@@ -128,27 +126,3 @@ end
 
 Base.reduce(f::Function, s::EmptySequence; init) = init
 Base.reduce(f::Function, s::Sequence; init=Base.reduce_empty(f, eltype(s))) = reduce(f, rest(s), init=f(init, first(s)))
-
-"""
-Streams are Sequences where the tail is always a Promise. Thereby enabling the sequence
-to be lazily or asynchronously generated
-"""
-struct Stream{T} <: Sequence{T}
-  head::T
-  tail::Promise
-end
-Stream(first, tail=convert(Promise, EOS)) = Stream(first, tail)
-
-Base.first(s::Stream) = s.head
-rest(s::Stream) = need(s.tail)
-
-# Lazy character streams from IO objects
-Base.convert(::Type{Sequence}, io::IO) = convert(Sequence{UInt8}, io)
-Base.convert(::Type{Sequence{T}}, io::IO) where T = begin
-  if eof(io)
-    close(io)
-    EOS
-  else
-    Stream(read(io, T), @defer convert(Sequence{T}, io)::Sequence)
-  end
-end

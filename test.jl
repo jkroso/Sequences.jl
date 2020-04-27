@@ -1,4 +1,7 @@
-include("main.jl")
+@use "github.com/jkroso/Rutherford.jl/test.jl" testset @test @catch
+@use "." EOS rest Cons list Sequence take
+@use "./stream.jl" Stream @defer
+@use "./double.jl" DoublyLinkedList head tail
 
 testset("EmptySequence") do
   @test isa(@catch(first(EOS)), BoundsError)
@@ -89,4 +92,10 @@ end
 
 testset("convert(Sequence, io::IO)") do
   @test convert(Sequence{UInt8}, open("./main.jl")) == convert(Sequence, read("./main.jl"))
+end
+
+testset("convert(DoublyLinkedList, iter)") do
+  @test repr(convert(DoublyLinkedList, (1,2,3))) == "(1 2 3)"
+  @test head(convert(DoublyLinkedList, (1,2,3))).value == 1
+  @test tail(convert(DoublyLinkedList, (1,2,3))).value == 3
 end

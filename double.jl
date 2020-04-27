@@ -21,9 +21,7 @@ Base.convert(::Type{DoublyLinkedList}, iter) = begin
     next = iterate(iter, state)
     isnothing(next) && break
     x, state = next
-    down = DoublyLinkedList(x, up)
-    up.down = down
-    up = down
+    up = up.down = DoublyLinkedList(x, up, EOS)
   end
   first
 end

@@ -30,3 +30,4 @@ head(l::DoublyLinkedList) = l.up === EOS ? l : head(l.up)
 tail(l::DoublyLinkedList) = l.down === EOS ? l : tail(l.down)
 
 Base.push!(l::DoublyLinkedList, x) = tail(l).down = DoublyLinkedList(x, l, EOS)
+Base.push!(l::typeof(EOS), x) = DoublyLinkedList(x, l, EOS)

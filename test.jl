@@ -107,4 +107,5 @@ testset("push!(DoublyLinkedList, x)") do
   a = convert(DoublyLinkedList, (1,2,3))
   @test push!(a, 4).value == 4
   @test repr(a) == "(1 2 3 4)"
+  @test repr(head(push!(EOS, 1))) == "(1)"
 end

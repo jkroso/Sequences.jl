@@ -126,3 +126,14 @@ end
 
 Base.reduce(f::Function, s::EmptySequence; init) = init
 Base.reduce(f::Function, s::Sequence; init=Base.reduce_empty(f, eltype(s))) = reduce(f, rest(s), init=f(init, first(s)))
+
+Base.findfirst(predicate::Function, s::Sequence) = begin
+  i = 1
+  for x in s
+    if predicate(x)
+      return i
+    end
+    i += 1
+  end
+  nothing
+end

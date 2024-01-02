@@ -109,3 +109,10 @@ testset("push!(DoublyLinkedList, x)") do
   @test repr(a) == "(1 2 3 4)"
   @test repr(head(push!(EOS, 1))) == "(1)"
 end
+
+testset("findfirst") do
+  s = list(1,2,3)
+  @test findfirst(==(0), s) == nothing
+  @test findfirst(==(1), s) == 1
+  @test findfirst(==(3), s) == 3
+end

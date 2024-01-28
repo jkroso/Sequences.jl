@@ -1,4 +1,4 @@
-@use "github.com/jkroso/Prospects.jl" append prepend
+@use "github.com/jkroso/Prospects.jl" append prepend pop
 @use "github.com/jkroso/Rutherford.jl/test.jl" testset @test @catch
 @use "." EOS rest Cons list Sequence take
 @use "./stream.jl" Stream @defer
@@ -134,6 +134,10 @@ testset("prepend") do
   @test prepend(rest(list(0)), 1) == list(1)
 end
 
+testset("pop") do
+  @test pop(list(1,2,3)) == list(1,2)
+end
+
 testset("Path") do
   p = convert(Path, (1,2,3))
   @test first(p) == 1
@@ -150,4 +154,5 @@ testset("Path") do
   a=convert(Path, [1,2,3])
   b=convert(Path, [4,5,6])
   @test cat(a,b) == list(1,2,3,4,5,6)
+  @test pop(p) == list(1,2)
 end

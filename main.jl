@@ -1,4 +1,4 @@
-@use "github.com/jkroso/Prospects.jl" append prepend
+@use "github.com/jkroso/Prospects.jl" append prepend pop
 
 abstract type Sequence{T} end
 
@@ -147,3 +147,4 @@ append(l::Cons{T}, x) where T = Cons{T}(first(l), append(rest(l), x))
 append(l::EmptySequence{Cons{T}}, x) where T = Cons{T}(x, l)
 prepend(l::EmptySequence{Cons{T}}, x) where T = Cons{T}(x, l)
 prepend(l::Cons{T}, x) where T = Cons{T}(x, l)
+pop(l::Cons{T}) where T = isempty(rest(l)) ? rest(l) : Cons{T}(first(l), pop(rest(l)))

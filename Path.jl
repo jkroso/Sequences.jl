@@ -1,4 +1,4 @@
-@use "." EmptySequence Sequence Cons EOS rest prepend append
+@use "." EmptySequence Sequence Cons EOS rest prepend append pop
 
 "A Path is just a sequence type that makes append efficient rather than prepend"
 struct Path{T} <: Sequence{T}
@@ -29,6 +29,8 @@ Base.cat(a::Path{T}, b::Path{T}) where T = begin
   end
   a
 end
+
+pop(a::Path) = a.parent
 
 Base.first(p::Path) = begin
   while !(p.parent isa EmptySequence)

@@ -1,11 +1,10 @@
+@use "github.com/jkroso/Prospects.jl" append prepend
+
 abstract type Sequence{T} end
 
 "A singleton to mark the end of a list"
 struct EmptySequence{T} <: Sequence{T} end
 const EOS = EmptySequence{Any}()
-Base.eof(s::Sequence) = s ≡ EOS
-Base.eof(s::EmptySequence) = true
-
 Base.first(::EmptySequence) = throw(BoundsError())
 rest(::EmptySequence) = throw(BoundsError())
 
@@ -15,8 +14,7 @@ struct Cons{T} <: Sequence{T}
   tail::Sequence
 end
 
-# Make the tail optional
-Cons(first, tail=EOS) = Cons(first, tail)
+Cons(first, tail=EmptySequence{Cons{typeof(first)}}()) = Cons(first, tail)
 
 Base.eltype(::Sequence{T}) where T = T
 Base.first(s::Cons) = s.head
@@ -24,19 +22,21 @@ rest(s::Cons) = s.tail
 
 "Create a List containing all the values passed in"
 list() = EOS
-list(head, rest...) = Cons(head, list(rest...))
+list(head::T) where T = Cons{T}(head, EmptySequence{Cons{T}}())
+list(head::T, rest...) where T = Cons{T}(head, list(rest...))
 
 # Handle pretty printing for the REPL etc..
 Base.show(io::IO, seq::EmptySequence) = write(io, "()")
+Base.show(io::IO, ::MIME"text/html", seq::Sequence) = show(io, seq)
 Base.show(io::IO, seq::Sequence) = begin
   write(io, '(')
-  while true
-    show(io, first(seq))
-    seq = rest(seq)
-    eof(seq) && break
-    write(io, ' ')
+  first = true
+  for x in seq
+    if first; first = false; else write(io, ' ') end
+    show(io, x)
   end
   write(io, ')')
+  nothing
 end
 
 Base.:(==)(a::Sequence, b::Sequence) = first(a) == first(b) && rest(a) == rest(b)
@@ -64,7 +64,7 @@ Base.first(t::Take) = first(t.s)
 rest(t::Take) = begin
   t.n <= 1 && return EOS
   r = rest(t.s)
-  eof(r) && throw(BoundsError())
+  isempty(r) && throw(BoundsError())
   Take(t.n - 1, r)
 end
 
@@ -76,13 +76,17 @@ Base.skip(n::Int, s::Sequence) = n == 0 ? s : skip(n - 1, rest(s))
 Base.skip(n::Int, s::EmptySequence) = n == 0 ? EOS : throw(BoundsError())
 
 Base.iterate(s::Sequence) = iterate(s, s)
-Base.iterate(s::Sequence, r::Sequence) = eof(r) ? nothing : (first(r), rest(r))
+Base.iterate(s::Sequence, r) = (first(r), rest(r))
+Base.iterate(s::EmptySequence, r::Sequence) = nothing
 
-Base.isempty(s::Sequence) = eof(s)
+Base.isempty(s::Sequence) = false
+Base.isempty(s::EmptySequence) = true
 Base.lastindex(s::Sequence) = length(s)
-Base.length(s::Sequence) = eof(s) ? 0 : 1 + length(rest(s))
+Base.firstindex(s::Sequence) = 1
+Base.length(s::Sequence) = 1 + length(rest(s))
+Base.length(::EmptySequence) = 0
 Base.getindex(s::Sequence, n::Int) = n == 1 ? first(s) : getindex(rest(s), n - 1)
-Base.getindex(s::Sequence, r::UnitRange{Int}) = take(r.stop, skip(r.start - 1, s))
+Base.getindex(s::Sequence, r::UnitRange{Int}) = take(r.stop-r.start+1, skip(r.start - 1, s))
 
 "Enables merging of Sequences"
 struct Zip{T} <: Sequence{T}
@@ -92,7 +96,7 @@ end
 Base.first(z::Zip) = map(first, z.ss)
 rest(z::Zip) = zip(map(rest, z.ss)...)
 # Create a list of rows by combining several lists
-Base.zip(ss::Sequence...) = any(eof, ss) ? EOS : Zip{Any}(Sequence[ss...])
+Base.zip(ss::Sequence...) = any(isempty, ss) ? EOS : Zip{Any}(Sequence[ss...])
 
 "Enables joining two Sequences together"
 struct Cat{T} <: Sequence{T}
@@ -103,18 +107,18 @@ end
 Base.first(s::Cat) = first(s.a)
 rest(s::Cat) = begin
   a = rest(s.a)
-  eof(a) ? s.b : Cat(a, s.b)
+  isempty(a) ? s.b : Cat(a, s.b)
 end
 
 Base.cat(a::Sequence, b::Sequence) = Cat(a, b)
 Base.cat(a::Sequence, b::EmptySequence) = a
 Base.cat(a::EmptySequence, b::Sequence) = b
 
-Base.map(f::Function, s::EmptySequence) = EOS
+Base.map(f::Function, s::EmptySequence) = s
 Base.map(f::Function, s::Sequence) = Cons(f(first(s)), map(f, rest(s)))
 Base.map(f::Function, ss::Sequence...) = map(v -> f(v...), zip(ss...))
 
-Iterators.filter(f::Function, s::EmptySequence) = EOS
+Iterators.filter(f::Function, s::EmptySequence) = s
 Iterators.filter(f::Function, s::Sequence) = begin
   head = first(s)
   if f(head)
@@ -137,3 +141,8 @@ Base.findfirst(predicate::Function, s::Sequence) = begin
   end
   nothing
 end
+
+append(l::Cons{T}, x) where T = Cons{T}(first(l), append(rest(l), x))
+append(l::EmptySequence{Cons{T}}, x) where T = Cons{T}(x, l)
+prepend(l::EmptySequence{Cons{T}}, x) where T = Cons{T}(x, l)
+prepend(l::Cons{T}, x) where T = Cons{T}(x, l)

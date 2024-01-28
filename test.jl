@@ -1,7 +1,9 @@
+@use "github.com/jkroso/Prospects.jl" append prepend
 @use "github.com/jkroso/Rutherford.jl/test.jl" testset @test @catch
 @use "." EOS rest Cons list Sequence take
 @use "./stream.jl" Stream @defer
 @use "./double.jl" DoublyLinkedList head tail
+@use "./Path.jl" Path
 
 testset("EmptySequence") do
   @test isa(@catch(first(EOS)), BoundsError)
@@ -56,6 +58,9 @@ testset("indexing") do
   @test list(1,2,3)[end] == 3
   @test list(1,2,3)[1:end] == list(1,2,3)
   @test list(1,2,3)[1:2] == list(1,2)
+  @test list(1,2,3)[2:3] == list(2,3)
+  @test list(1,2,3)[1:3] == list(1,2,3)
+  @test list(1,2,3)[begin:end] == list(1,2,3)
   @test isa(@catch(list(1,2,3)[4]), BoundsError)
 end
 
@@ -115,4 +120,31 @@ testset("findfirst") do
   @test findfirst(==(0), s) == nothing
   @test findfirst(==(1), s) == 1
   @test findfirst(==(3), s) == 3
+end
+
+testset("append") do
+  l = list(1,2,3)
+  @test append(l, 4) == list(1,2,3,4)
+  @test append(rest(list(0)), 1) == list(1)
+end
+
+testset("prepend") do
+  l = list(1,2,3)
+  @test prepend(l, 0) == list(0,1,2,3)
+  @test prepend(rest(list(0)), 1) == list(1)
+end
+
+testset("Path") do
+  p = convert(Path, (1,2,3))
+  @test first(p) == 1
+  @test first(rest(p)) == 2
+  @test eltype(p) == Int
+  @test collect(p) == Int[1,2,3]
+  @test prepend(p, 0) == list(0,1,2,3)
+  @test append(p, 4) == list(1,2,3,4)
+  @test append(p, 4) == list(1,2,3,4)
+  @test p[1] == 1
+  @test p[1:2] == list(1,2)
+  @test p[1:3] == list(1,2,3)
+  @test p[begin:end] == list(1,2,3)
 end

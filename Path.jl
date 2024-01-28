@@ -23,6 +23,13 @@ prepend(p::Path{T}, x) where T = begin
   end
 end
 
+Base.cat(a::Path{T}, b::Path{T}) where T = begin
+  for x in b
+    a = Path{T}(x, a)
+  end
+  a
+end
+
 Base.first(p::Path) = begin
   while !(p.parent isa EmptySequence)
     p = p.parent

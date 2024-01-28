@@ -147,4 +147,7 @@ testset("Path") do
   @test p[1:2] == list(1,2)
   @test p[1:3] == list(1,2,3)
   @test p[begin:end] == list(1,2,3)
+  a=convert(Path, [1,2,3])
+  b=convert(Path, [4,5,6])
+  @test cat(a,b) == list(1,2,3,4,5,6)
 end

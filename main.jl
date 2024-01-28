@@ -76,8 +76,9 @@ Base.skip(n::Int, s::Sequence) = n == 0 ? s : skip(n - 1, rest(s))
 Base.skip(n::Int, s::EmptySequence) = n == 0 ? EOS : throw(BoundsError())
 
 Base.iterate(s::Sequence) = iterate(s, s)
+Base.iterate(s::EmptySequence) = nothing
 Base.iterate(s::Sequence, r) = (first(r), rest(r))
-Base.iterate(s::EmptySequence, r::Sequence) = nothing
+Base.iterate(s::Sequence, r::EmptySequence) = nothing
 
 Base.isempty(s::Sequence) = false
 Base.isempty(s::EmptySequence) = true

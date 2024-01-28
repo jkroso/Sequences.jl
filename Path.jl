@@ -6,14 +6,12 @@ struct Path{T} <: Sequence{T}
   parent::Sequence
 end
 
-tocons(p::EmptySequence{Path{T}}, out=EOS) where T = EmptySequence{Cons{T}}()
+tocons(p::EmptySequence{Path{T}}, out) where T = out
 tocons(p::Path{T}, out=EmptySequence{Cons{T}}()) where T = tocons(p.parent, Cons{T}(p.value, out))
 Base.reverse(p::Path) = tocons(p)
 
-Base.convert(::Type{Path}, itr) = begin
-  T = eltype(itr)
-  foldl((p,x)->Path{T}(x, p), itr, init=EmptySequence{Path{T}}())
-end
+Base.convert(::Type{Path}, itr) = convert(Path{eltype(itr)}, itr)
+Base.convert(::Type{Path{T}}, itr) where T = foldl((p, x)->Path{T}(x, p), itr, init=EmptySequence{Path{T}}())
 
 append(p::Union{Path{T},EmptySequence{Path{T}}}, x) where T = Path{T}(x, p)
 prepend(p::EmptySequence{Path{T}}, x) where T = Path{T}(x, EmptySequence{Path{T}}())
@@ -40,5 +38,5 @@ end
 
 Base.length(p::Path) = length(p.parent) + 1
 Base.iterate(p::Path) = iterate(p, reverse(p))
-Base.iterate(p::Path, ::EmptySequence) = nothing
 Base.iterate(p::Path, reverse::Sequence) = (first(reverse), rest(reverse))
+Base.iterate(p::Path, ::EmptySequence) = nothing

@@ -1,10 +1,13 @@
 @use "github.com/jkroso/Prospects.jl" append prepend pop
+import Base.rest
 
 abstract type Sequence{T} end
 
 "A singleton to mark the end of a list"
-struct EmptySequence{T} <: Sequence{T} end
-const EOS = EmptySequence{Any}()
+struct EmptySequence{T} <: Sequence{T}
+  default_type::Type{<:Sequence{T}}
+end
+EmptySequence{T}() where T = EmptySequence{T}(Cons{T})
 Base.first(::EmptySequence) = throw(BoundsError())
 rest(::EmptySequence) = throw(BoundsError())
 
@@ -14,16 +17,15 @@ struct Cons{T} <: Sequence{T}
   tail::Sequence
 end
 
-Cons(first, tail=EmptySequence{Cons{typeof(first)}}()) = Cons(first, tail)
+Cons(first::T, tail=EmptySequence{T}()) where T = Cons(first, tail)
 
 Base.eltype(::Sequence{T}) where T = T
 Base.first(s::Cons) = s.head
 rest(s::Cons) = s.tail
 
 "Create a List containing all the values passed in"
-list() = EOS
-list(head::T) where T = Cons{T}(head, EmptySequence{Cons{T}}())
-list(head::T, rest...) where T = Cons{T}(head, list(rest...))
+list(itr...) = foldr(Cons, itr, init=EmptySequence{eltype(itr)}())
+const EOS = list()
 
 # Handle pretty printing for the REPL etc..
 Base.show(io::IO, seq::EmptySequence) = write(io, "()")
@@ -73,7 +75,7 @@ take(n::Int, s::Sequence) = n < 1 ? EOS : Take(n, s)
 
 "Skip `n` items from the front of `s`"
 Base.skip(n::Int, s::Sequence) = n == 0 ? s : skip(n - 1, rest(s))
-Base.skip(n::Int, s::EmptySequence) = n == 0 ? EOS : throw(BoundsError())
+Base.skip(n::Int, s::EmptySequence) = n == 0 ? s : throw(BoundsError())
 
 Base.iterate(s::Sequence) = iterate(s, s)
 Base.iterate(s::EmptySequence) = nothing
@@ -144,7 +146,8 @@ Base.findfirst(predicate::Function, s::Sequence) = begin
 end
 
 append(l::Cons{T}, x) where T = Cons{T}(first(l), append(rest(l), x))
-append(l::EmptySequence{Cons{T}}, x) where T = Cons{T}(x, l)
-prepend(l::EmptySequence{Cons{T}}, x) where T = Cons{T}(x, l)
+append(l::EmptySequence, x) = l.default_type(x, l)
+prepend(l::EmptySequence, x) = l.default_type(x, l)
 prepend(l::Cons{T}, x) where T = Cons{T}(x, l)
 pop(l::Cons{T}) where T = isempty(rest(l)) ? rest(l) : Cons{T}(first(l), pop(rest(l)))
+pop(l::EmptySequence) = throw(BoundsError())

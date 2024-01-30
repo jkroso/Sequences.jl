@@ -6,15 +6,15 @@ struct Path{T} <: Sequence{T}
   parent::Sequence
 end
 
-tocons(p::EmptySequence{Path{T}}, out) where T = out
-tocons(p::Path{T}, out=EmptySequence{Cons{T}}()) where T = tocons(p.parent, Cons{T}(p.value, out))
+tocons(p::EmptySequence, out) = out
+tocons(p::Path{T}, out=EmptySequence{T}()) where T = tocons(p.parent, Cons{T}(p.value, out))
 Base.reverse(p::Path) = tocons(p)
 
 Base.convert(::Type{Path}, itr) = convert(Path{eltype(itr)}, itr)
-Base.convert(::Type{Path{T}}, itr) where T = foldl((p, x)->Path{T}(x, p), itr, init=EmptySequence{Path{T}}())
+Base.convert(::Type{Path{T}}, itr) where T = foldl((p, x)->Path{T}(x, p), itr, init=EmptySequence{T}(Path{T}))
 
-append(p::Union{Path{T},EmptySequence{Path{T}}}, x) where T = Path{T}(x, p)
-prepend(p::EmptySequence{Path{T}}, x) where T = Path{T}(x, EmptySequence{Path{T}}())
+append(p::Path{T}, x) where T = Path{T}(x, p)
+prepend(p::EmptySequence{T}, x) where T = Path{T}(x, EmptySequence{T}(Path{T}))
 prepend(p::Path{T}, x) where T = begin
   if p.parent isa EmptySequence
     Path{T}(p.value, Path{T}(x, p.parent))
@@ -23,13 +23,7 @@ prepend(p::Path{T}, x) where T = begin
   end
 end
 
-Base.cat(a::Path{T}, b::Path{T}) where T = begin
-  for x in b
-    a = Path{T}(x, a)
-  end
-  a
-end
-
+Base.cat(a::Path{T}, b::Path{T}) where T = foldl(append, b, init=a)
 pop(a::Path) = a.parent
 
 Base.first(p::Path) = begin

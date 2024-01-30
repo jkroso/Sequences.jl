@@ -147,6 +147,8 @@ testset("Path") do
   @test prepend(p, 0) == list(0,1,2,3)
   @test append(p, 4) == list(1,2,3,4)
   @test append(p, 4) == list(1,2,3,4)
+  @test append(rest(convert(Path, (1,))), 2) == list(2)
+  @test append(rest(convert(Path, (1,))), 2) isa Path{Int}
   @test p[1] == 1
   @test p[1:2] == list(1,2)
   @test p[1:3] == list(1,2,3)

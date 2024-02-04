@@ -156,9 +156,12 @@ struct Path{T} <: Sequence{T}
   parent::Sequence
 end
 
+Base.convert(::Type{<:Cons}, p::Path) = tocons(p)
 tocons(p::EmptySequence, out) = out
 tocons(p::Path{T}, out=EmptySequence{T}(Cons{T})) where T = tocons(p.parent, Cons{T}(p.value, out))
-Base.reverse(p::Path) = tocons(p)
+Base.reverse(p::Path) = reverse_path(p)
+reverse_path(p::EmptySequence, first) = first
+reverse_path(p::Path, first=empty(p)) = reverse_path(pop(p), append(first, last(p)))
 Base.reverse(s::Sequence{T}) where T = foldl(prepend, s, init=empty(s))
 Base.empty(s::Sequence{T}) where T = EmptySequence{T}(typeof(s))
 Base.empty(s::EmptySequence) = s
@@ -193,8 +196,8 @@ rest(p::Path{T}) where T = begin
 end
 
 Base.length(p::Path) = length(p.parent) + 1
-Base.iterate(p::Path) = iterate(p, reverse(p))
-Base.iterate(p::Path, reverse::Sequence) = (first(reverse), rest(reverse))
+Base.iterate(p::Path) = iterate(p, convert(Cons, p))
+Base.iterate(p::Path, cons::Sequence) = (first(cons), rest(cons))
 Base.iterate(p::Path, ::EmptySequence) = nothing
 
 append(l::Cons{T}, x) where T = Cons{T}(first(l), append(rest(l), x))

@@ -158,4 +158,5 @@ testset("Path") do
   b=convert(Path, [4,5,6])
   @test cat(a,b) == list(1,2,3,4,5,6)
   @test pop(p) == list(1,2)
+  @test reverse(p) == list(3,2,1)
 end

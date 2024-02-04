@@ -1,9 +1,8 @@
 @use "github.com/jkroso/Prospects.jl" append prepend pop
 @use "github.com/jkroso/Rutherford.jl/test.jl" testset @test @catch
-@use "." EOS rest Cons list Sequence take
+@use "." EOS rest Cons list Sequence take Path
 @use "./stream.jl" Stream @defer
 @use "./double.jl" DoublyLinkedList head tail
-@use "./Path.jl" Path
 
 testset("EmptySequence") do
   @test isa(@catch(first(EOS)), BoundsError)
@@ -34,18 +33,18 @@ testset("Array wrapper") do
 end
 
 testset("take") do
-  @test take(0, list(1,2,3)) == EOS
-  @test take(1, list(1,2,3)) == list(1)
-  @test take(2, list(1,2,3)) == list(1,2)
-  @test rest(take(1, list(1,2))) == EOS
+  @test take(list(1,2,3), 0) == EOS
+  @test take(list(1,2,3), 1) == list(1)
+  @test take(list(1,2,3), 2) == list(1,2)
+  @test rest(take(list(1,2), 1)) == EOS
 end
 
 testset("skip") do
-  @test skip(0, list(1,2,3)) == list(1,2,3)
-  @test skip(1, list(1,2,3)) == list(2,3)
-  @test skip(2, list(1,2,3)) == list(3)
-  @test skip(3, list(1,2,3)) == list()
-  @test isa(@catch(skip(4, list(1,2,3))), BoundsError)
+  @test skip(list(1,2,3), 0) == list(1,2,3)
+  @test skip(list(1,2,3), 1) == list(2,3)
+  @test skip(list(1,2,3), 2) == list(3)
+  @test skip(list(1,2,3), 3) == list()
+  @test isa(@catch(skip(list(1,2,3), 4)), BoundsError)
 end
 
 testset("Iteration") do
@@ -136,6 +135,8 @@ end
 
 testset("pop") do
   @test pop(list(1,2,3)) == list(1,2)
+  @test pop(list(1,2,3), 2) == list(1)
+  @test pop(list(1,2,3), 0) == list(1,2,3)
 end
 
 testset("Path") do

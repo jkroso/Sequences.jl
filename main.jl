@@ -1,13 +1,13 @@
 @use "github.com/jkroso/Prospects.jl" append prepend pop
+import Base.Iterators: take, drop
 import Base.rest
 
 abstract type Sequence{T} end
 
 "A singleton to mark the end of a list"
 struct EmptySequence{T} <: Sequence{T}
-  default_type::Type{<:Sequence{T}}
+  default_type::Type{<:Sequence}
 end
-EmptySequence{T}() where T = EmptySequence{T}(Cons{T})
 Base.first(::EmptySequence) = throw(BoundsError())
 rest(::EmptySequence) = throw(BoundsError())
 
@@ -17,14 +17,14 @@ struct Cons{T} <: Sequence{T}
   tail::Sequence
 end
 
-Cons(first::T, tail=EmptySequence{T}()) where T = Cons(first, tail)
+Cons(first::T, tail=EmptySequence{T}(Cons{T})) where T = Cons(first, tail)
 
 Base.eltype(::Sequence{T}) where T = T
 Base.first(s::Cons) = s.head
 rest(s::Cons) = s.tail
 
 "Create a List containing all the values passed in"
-list(itr...) = foldr(Cons, itr, init=EmptySequence{eltype(itr)}())
+list(itr...) = foldr(Cons, itr, init=EmptySequence{eltype(itr)}(Cons{eltype(itr)}))
 const EOS = list()
 
 # Handle pretty printing for the REPL etc..
@@ -71,11 +71,12 @@ rest(t::Take) = begin
 end
 
 "Create a copy of `s` with a length == n"
-take(n::Int, s::Sequence) = n < 1 ? EOS : Take(n, s)
+take(s::Sequence, n::Int) = n < 1 ? EOS : Take(n, s)
 
 "Skip `n` items from the front of `s`"
-Base.skip(n::Int, s::Sequence) = n == 0 ? s : skip(n - 1, rest(s))
-Base.skip(n::Int, s::EmptySequence) = n == 0 ? s : throw(BoundsError())
+Base.skip(s::Sequence, n::Integer) = n == 0 ? s : skip(rest(s), n - 1)
+Base.skip(s::EmptySequence, n::Integer) = n == 0 ? s : throw(BoundsError())
+drop(s::Sequence, n::Integer) = skip(s, n)
 
 Base.iterate(s::Sequence) = iterate(s, s)
 Base.iterate(s::EmptySequence) = nothing
@@ -89,7 +90,11 @@ Base.firstindex(s::Sequence) = 1
 Base.length(s::Sequence) = 1 + length(rest(s))
 Base.length(::EmptySequence) = 0
 Base.getindex(s::Sequence, n::Int) = n == 1 ? first(s) : getindex(rest(s), n - 1)
-Base.getindex(s::Sequence, r::UnitRange{Int}) = take(r.stop-r.start+1, skip(r.start - 1, s))
+Base.getindex(s::Sequence, r::UnitRange{Int}) = take(skip(s, r.start - 1), r.stop-r.start+1)
+Base.last(s::Sequence) = begin
+  r = rest(s)
+  isempty(r) ? first(s) : last(r)
+end
 
 "Enables merging of Sequences"
 struct Zip{T} <: Sequence{T}
@@ -145,9 +150,57 @@ Base.findfirst(predicate::Function, s::Sequence) = begin
   nothing
 end
 
+"A Path is just a sequence type that makes append efficient rather than prepend"
+struct Path{T} <: Sequence{T}
+  value::T
+  parent::Sequence
+end
+
+tocons(p::EmptySequence, out) = out
+tocons(p::Path{T}, out=EmptySequence{T}(Cons{T})) where T = tocons(p.parent, Cons{T}(p.value, out))
+Base.reverse(p::Path) = tocons(p)
+Base.reverse(s::Sequence{T}) where T = foldl(prepend, s, init=empty(s))
+Base.empty(s::Sequence{T}) where T = EmptySequence{T}(typeof(s))
+Base.empty(s::EmptySequence) = s
+
+Base.convert(::Type{Path}, itr) = convert(Path{eltype(itr)}, itr)
+Base.convert(::Type{Path{T}}, itr) where T = foldl(append, itr, init=EmptySequence{T}(Path{T}))
+
+append(p::Path{T}, x) where T = Path{T}(x, p)
+prepend(p::Path{T}, x) where T = begin
+  if isempty(p.parent)
+    Path{T}(p.value, Path{T}(x, p.parent))
+  else
+    Path{T}(p.value, prepend(p.parent, x))
+  end
+end
+
+Base.cat(a::Path{T}, b::Path{T}) where T = foldl(append, b, init=a)
+pop(a::Path) = a.parent
+
+Base.first(p::Path) = begin
+  while !isempty(p.parent)
+    p = p.parent
+  end
+  p.value
+end
+Base.last(p::Path) = p.value
+
+rest(p::Path{T}) where T = begin
+  parent = p.parent
+  isempty(parent) && return parent
+  Path{T}(p.value, rest(parent))
+end
+
+Base.length(p::Path) = length(p.parent) + 1
+Base.iterate(p::Path) = iterate(p, reverse(p))
+Base.iterate(p::Path, reverse::Sequence) = (first(reverse), rest(reverse))
+Base.iterate(p::Path, ::EmptySequence) = nothing
+
 append(l::Cons{T}, x) where T = Cons{T}(first(l), append(rest(l), x))
 append(l::EmptySequence, x) = l.default_type(x, l)
-prepend(l::EmptySequence, x) = l.default_type(x, l)
 prepend(l::Cons{T}, x) where T = Cons{T}(x, l)
-pop(l::Cons{T}) where T = isempty(rest(l)) ? rest(l) : Cons{T}(first(l), pop(rest(l)))
+prepend(l::EmptySequence, x) = l.default_type(x, l)
+pop(l::Sequence) = isempty(rest(l)) ? rest(l) : prepend(pop(rest(l)), first(l))
 pop(l::EmptySequence) = throw(BoundsError())
+pop(l, n) = reverse(skip(reverse(l), n))

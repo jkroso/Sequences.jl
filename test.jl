@@ -1,6 +1,6 @@
 @use "github.com/jkroso/Prospects.jl" append prepend pop
 @use "github.com/jkroso/Rutherford.jl/test.jl" testset @test @catch
-@use "." EOS rest Cons list Sequence take Path
+@use "." EOS rest Cons list Sequence take Path remove
 @use "./stream.jl" Stream @defer
 @use "./double.jl" DoublyLinkedList head tail
 
@@ -159,4 +159,9 @@ testset("Path") do
   @test cat(a,b) == list(1,2,3,4,5,6)
   @test pop(p) == list(1,2)
   @test reverse(p) == list(3,2,1)
+end
+
+testset("remove") do
+  p = convert(Path, (1,2,3))
+  @test remove(p, 2) == convert(Path, (1,3))
 end

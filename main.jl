@@ -46,15 +46,28 @@ Base.:(==)(a::EmptySequence, b::EmptySequence) = true
 
 "A wrapper to convert an AbstractArray to a Sequence"
 struct ArraySeq{T} <: Sequence{T}
-  xs::AbstractArray{T}
+  xs::AbstractVector{T}
   i::Int
 end
 
-Base.convert(::Type{Sequence}, a::AbstractArray) = length(a) == 0 ? EOS : ArraySeq(a, 1)
+Base.convert(::Type{Sequence{T}}, a::AbstractVector{T}) where T = length(a) == 0 ? EOS : ArraySeq{T}(a, 1)
 
 Base.length(s::ArraySeq) = length(s.xs) - (s.i - 1)
 Base.first(s::ArraySeq) = s.xs[s.i]
 rest(s::ArraySeq) = s.i < length(s.xs) ? ArraySeq(s.xs, s.i + 1) : EOS
+prepend(s::ArraySeq{T}, x) where T = begin
+  xs = copy(s.xs)
+  i = s.i
+  if i == 1
+    pushfirst!(xs, x)
+  else
+    i -= 1
+    xs[i] = x
+  end
+  ArraySeq{T}(xs, i)
+end
+append(s::ArraySeq{T}, x) where T = ArraySeq{T}(push!(copy(s.xs), x), s.i)
+push(s::ArraySeq, x) = append(s, x)
 
 "Enables you to limit the length of a Sequence"
 struct Take{T} <: Sequence{T}
@@ -126,13 +139,13 @@ Base.map(f::Function, s::EmptySequence) = s
 Base.map(f::Function, s::Sequence) = Cons(f(first(s)), map(f, rest(s)))
 Base.map(f::Function, ss::Sequence...) = map(v -> f(v...), zip(ss...))
 
-Iterators.filter(f::Function, s::EmptySequence) = s
-Iterators.filter(f::Function, s::Sequence) = begin
+Base.filter(f::Function, s::EmptySequence) = s
+Base.filter(f::Function, s::Sequence) = begin
   head = first(s)
   if f(head)
-    Cons(head, Iterators.filter(f, rest(s)))
+    prepend(filter(f, rest(s)), head)
   else
-    Iterators.filter(f, rest(s))
+    filter(f, rest(s))
   end
 end
 
@@ -157,6 +170,7 @@ struct Path{T} <: Sequence{T}
 end
 
 Base.convert(::Type{<:Cons}, p::Path) = tocons(p)
+Base.convert(::Type{Sequence{T}}, itr) where T = foldl(append, itr, init=EmptySequence{T}(Path{T}))
 tocons(p::EmptySequence, out) = out
 tocons(p::Path{T}, out=EmptySequence{T}(Cons{T})) where T = tocons(p.parent, Cons{T}(p.value, out))
 Base.reverse(p::Path) = reverse_path(p)
@@ -207,3 +221,24 @@ prepend(l::EmptySequence, x) = l.default_type(x, l)
 pop(l::Sequence) = isempty(rest(l)) ? rest(l) : prepend(pop(rest(l)), first(l))
 pop(l::EmptySequence) = throw(BoundsError())
 pop(l, n) = reverse(skip(reverse(l), n))
+
+"""
+push adds an item to a collection in whatever happens to be the most efficient way possible.
+Ordering is not considered
+"""
+push(p::Path, x) = append(p, x)
+push(p::Sequence, x) = prepend(p, x)
+
+"""
+Works exactly like iterate but without regard for the order of iteration
+"""
+step(s::Sequence) = iterate(s)
+step(s::Sequence, state) = iterate(s, state)
+step(s::Path) = step(s, s)
+step(s::Path, tail::EmptySequence) = nothing
+step(s::Path, tail::Path) = (tail.value, tail.parent)
+
+"""
+Remove a value from a Collection
+"""
+remove(p::Sequence, x) = filter(!=(x), p)

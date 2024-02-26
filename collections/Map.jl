@@ -1,5 +1,5 @@
 @use "github.com/jkroso/Prospects.jl" assoc dissoc
-@use ".." Cons EmptySequence rest Sequence push
+@use ".." Cons EmptySequence rest Sequence push Path step
 
 """
 An immutable Dictionary optimized for small length use cases. It's similar to
@@ -18,7 +18,7 @@ end
 Map(pairs::Pair...) = begin
   K = typejoin(map(typeof ∘ first, pairs)...)
   V = typejoin(map(typeof ∘ last, pairs)...)
-  Map{K,V}(pairs...)
+  Map{K==Union{} ? Any : K, V==Union{} ? Any : V}(pairs...)
 end
 
 Base.iterate(d::Map) = iterate(d, d.pairs)
@@ -27,8 +27,11 @@ Base.iterate(d::Map, seq::Sequence) = (first(seq), rest(seq))
 Base.length(d::Map) = length(d.pairs)
 
 Base.get(d::Map, key, default) = begin
-  for (k,v) in d.pairs
-    k == key && return v
+  itr = step(d.pairs)
+  while itr !== nothing
+    pair,rest = itr
+    pair.first == key && return pair.second
+    itr = step(rest, rest)
   end
   default
 end
@@ -36,20 +39,20 @@ end
 Base.getindex(d::Map, key) = get(d, key)
 
 assoc(m::Map{K,V}, k::K, v::V) where {K,V} = begin
-  old = m.pairs
-  new = empty(old)
-  while true
-    key,value = first(old)
-    old = rest(old)
-    if k == key
-      new = reduce(push, old, init=push(new, k=>v))
+  new = empty(m.pairs)
+  itr = step(m.pairs)
+  while !isnothing(itr)
+    pair,rest = itr
+    if k == pair[1]
+      new = reduce(push, rest, init=push(new, k=>v))
       break
-    elseif isempty(old)
-      new = push(push(new, key=>value), k=>v)
+    elseif isempty(rest)
+      new = push(push(new, pair), k=>v)
       break
     else
-      new = push(new, key=>value)
+      new = push(new, pair)
     end
+    itr = step(rest, rest)
   end
   Map{K,V}(new)
 end
@@ -57,17 +60,18 @@ end
 push(m::Map{K,V}, p::Pair) where {K,V} = Map{K,V}(push(m.pairs, p))
 
 dissoc(m::Map{K,V}, k::K) where {K,V} = begin
-  old = m.pairs
-  new = empty(old)
-  while !isempty(old)
-    pair = first(old)
-    old = rest(old)
+  rest = m.pairs
+  new = empty(rest)
+  itr = step(rest)
+  while !isnothing(itr)
+    pair,rest = itr
     if pair[1] == k
-      new = reduce(push, old, init=new)
+      new = reduce(push, rest, init=new)
       break
     else
       new = push(new, pair)
     end
+    itr = step(rest, rest)
   end
   Map{K,V}(new)
 end

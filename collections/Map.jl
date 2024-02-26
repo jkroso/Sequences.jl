@@ -44,17 +44,12 @@ assoc(m::Map{K,V}, k::K, v::V) where {K,V} = begin
   while !isnothing(itr)
     pair,rest = itr
     if k == pair[1]
-      new = reduce(push, rest, init=push(new, k=>v))
-      break
-    elseif isempty(rest)
-      new = push(push(new, pair), k=>v)
-      break
-    else
-      new = push(new, pair)
+      return Map{K,V}(reduce(push, rest, init=push(new, k=>v)))
     end
+    new = push(new, pair)
     itr = step(rest, rest)
   end
-  Map{K,V}(new)
+  Map{K,V}(push(new, k=>v))
 end
 
 push(m::Map{K,V}, p::Pair) where {K,V} = Map{K,V}(push(m.pairs, p))

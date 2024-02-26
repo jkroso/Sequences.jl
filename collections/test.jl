@@ -11,6 +11,7 @@ testset("Map") do
   @test Map(:a=>"b",:b=>2) == Map(:a=>"b",:b=>2)
   @test json(Map(:a=>"b",:b=>2)) == """{"b":2,"a":"b"}"""
   @test assoc(Map(:a=>1,:b=>2), :c, 3) == Dict(:a=>1,:b=>2,:c=>3)
+  @test assoc(Map(), :c, 3) == Dict(:c=>3)
   @test filter(p->p[1]!=:a, m) == Dict(:b=>2)
   @test dissoc(m, :b) == Map(:a=>"b")
   @test push(Map(:a=>1,:b=>2), :c=>3) == Dict(:a=>1,:b=>2,:c=>3)

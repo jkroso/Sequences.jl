@@ -15,6 +15,7 @@ testset("Cons") do
   @test first(list(1)) == 1
   @test rest(list(1)) == EOS
   @test typeof(Cons(1)) == Cons{Int}
+  @test convert(Cons{Int}, (1,)) == list(1)
 end
 
 testset("Serialization") do
@@ -81,8 +82,8 @@ testset("map") do
 end
 
 testset("filter") do
-  @test Iterators.filter(isodd, list(1,2,3)) == list(1,3)
-  @test Iterators.filter(isodd, EOS) == EOS
+  @test filter(isodd, list(1,2,3)) == list(1,3)
+  @test filter(isodd, EOS) == EOS
 end
 
 testset("reduce") do
@@ -92,10 +93,7 @@ end
 testset("Stream") do
   @test Stream(1) == list(1)
   @test Stream(1, @defer Stream(2)) == list(1,2)
-end
-
-testset("convert(Sequence, io::IO)") do
-  @test convert(Sequence{UInt8}, open("./main.jl")) == convert(Sequence, read("./main.jl"))
+  @test collect(convert(Stream{Char}, open("./main.jl"))) == collect(Char, read("./main.jl"))
 end
 
 testset("convert(DoublyLinkedList, iter)") do

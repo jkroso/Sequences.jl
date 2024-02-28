@@ -18,6 +18,7 @@ struct Cons{T} <: Sequence{T}
 end
 
 Cons(first::T, tail=EmptySequence{T}(Cons{T})) where T = Cons(first, tail)
+Base.convert(T::Type{<:Sequence}, itr) = foldl(prepend, itr, init=EmptySequence{T}(T))
 
 Base.eltype(::Sequence{T}) where T = T
 Base.first(s::Cons) = s.head

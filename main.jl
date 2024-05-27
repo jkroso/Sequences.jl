@@ -19,6 +19,7 @@ end
 
 Cons(first::T, tail=EmptySequence{T}(Cons{T})) where T = Cons(first, tail)
 Base.convert(T::Type{<:Sequence}, itr) = foldl(prepend, itr, init=EmptySequence{T}(T))
+Base.convert(T::Type{Sequence}, itr::Sequence) = itr
 Base.convert(::Type{Sequence}, itr) = begin
   T = Path{eltype(itr)}
   foldl(append, itr, init=EmptySequence{T}(T))
@@ -121,8 +122,10 @@ end
 
 Base.first(z::Zip) = map(first, z.ss)
 rest(z::Zip) = zip(map(rest, z.ss)...)
-# Create a list of rows by combining several lists
-Base.zip(ss::Sequence...) = any(isempty, ss) ? EOS : Zip{Any}(Sequence[ss...])
+Base.zip(ss::Sequence...) = begin
+  T = Vector{typejoin(map(eltype, ss)...)}
+  any(isempty, ss) ? EmptySequence{T}(Cons{T}) : Zip{T}(Sequence[ss...])
+end
 
 "Enables joining two Sequences together"
 struct Cat{T} <: Sequence{T}

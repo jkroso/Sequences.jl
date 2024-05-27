@@ -68,6 +68,7 @@ testset("zip") do
   @test zip(list(1), list(2), list(3,4)) == list([1,2,3])
   @test zip(list(1), list(2), list(3)) == list([1,2,3])
   @test zip(list(1), list(2), EOS) == EOS
+  @test eltype(rest(zip(Cons(1), Cons(2)))) == Vector{Int}
 end
 
 testset("cat") do

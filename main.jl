@@ -19,6 +19,10 @@ end
 
 Cons(first::T, tail=EmptySequence{T}(Cons{T})) where T = Cons(first, tail)
 Base.convert(T::Type{<:Sequence}, itr) = foldl(prepend, itr, init=EmptySequence{T}(T))
+Base.convert(::Type{Sequence}, itr) = begin
+  T = Path{eltype(itr)}
+  foldl(append, itr, init=EmptySequence{T}(T))
+end
 
 Base.eltype(::Sequence{T}) where T = T
 Base.first(s::Cons) = s.head

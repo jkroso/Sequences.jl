@@ -79,6 +79,7 @@ end
 
 testset("map") do
   @test map(identity, list(1,2,3)) == list(1,2,3)
+  @test map(vcat, Cons(1), Cons(2), Cons(3)) == list([1,2,3])
   @test map(tuple, Cons(1), Cons(2), Cons(3)) == list((1,2,3))
 end
 

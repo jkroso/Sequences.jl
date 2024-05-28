@@ -144,7 +144,14 @@ Base.cat(a::Sequence, b::EmptySequence) = a
 Base.cat(a::EmptySequence, b::Sequence) = b
 
 Base.map(f::Function, s::EmptySequence) = s
-Base.map(f::Function, s::Sequence) = prepend(map(f, rest(s)), f(first(s)))
+Base.map(f::Function, s::Sequence) = begin
+  head, tail = step(s)
+  x = f(head)
+  isempty(tail) || return push(map(f, tail), x)
+  eltype = typeof(x)
+  T = tail.default_type.name.wrapper{eltype}
+  T(x, EmptySequence{eltype}(T))
+end
 Base.map(f::Function, ss::Sequence...) = map(v -> f(v...), zip(ss...))
 
 Base.filter(f::Function, s::EmptySequence) = s
@@ -201,7 +208,6 @@ prepend(p::Path{T}, x) where T = begin
 end
 
 Base.cat(a::Path{T}, b::Path{T}) where T = foldl(append, b, init=a)
-Base.map(f::Function, s::Path) = append(map(f, s.tail), f(s.head))
 pop(a::Path) = a.parent
 
 Base.first(p::Path) = begin

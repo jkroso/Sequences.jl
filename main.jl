@@ -142,6 +142,7 @@ end
 Base.cat(a::Sequence, b::Sequence) = Cat(a, b)
 Base.cat(a::Sequence, b::EmptySequence) = a
 Base.cat(a::EmptySequence, b::Sequence) = b
+Base.cat(a::EmptySequence, b::EmptySequence) = a
 
 Base.map(f::Function, s::EmptySequence) = s
 Base.map(f::Function, s::Sequence) = begin

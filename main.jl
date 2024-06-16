@@ -49,6 +49,8 @@ end
 
 Base.:(==)(a::Sequence, b::Sequence) = first(a) == first(b) && rest(a) == rest(b)
 Base.:(==)(a::EmptySequence, b::EmptySequence) = true
+Base.:(==)(a::EmptySequence, b::Sequence) = false
+Base.:(==)(a::Sequence, b::EmptySequence) = false
 
 "A wrapper to convert an AbstractArray to a Sequence"
 struct ArraySeq{T} <: Sequence{T}

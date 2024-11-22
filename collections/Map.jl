@@ -72,3 +72,5 @@ dissoc(m::Map{K,V}, k::K) where {K,V} = begin
 end
 
 Base.filter(pred::Function, m::Map{K,V}) where {K,V} = Map{K,V}(filter(pred, m.pairs))
+
+Base.merge(a::Map, b::Map) = Map(cat(a.pairs, b.pairs))

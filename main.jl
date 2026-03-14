@@ -243,7 +243,7 @@ prepend(l::Cons{T}, x) where T = Cons{T}(x, l)
 prepend(l::EmptySequence, x) = l.default_type(x, l)
 pop(l::Sequence) = isempty(rest(l)) ? rest(l) : prepend(pop(rest(l)), first(l))
 pop(l::EmptySequence) = throw(BoundsError())
-pop(l, n) = reverse(skip(reverse(l), n))
+pop(l::Sequence, n::Integer) = reverse(skip(reverse(l), n))
 
 """
 push adds an item to a collection in whatever happens to be the most efficient way possible.
